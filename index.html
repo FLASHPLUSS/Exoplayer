@@ -8,78 +8,69 @@
     body, html {
       margin: 0;
       padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-size: cover;
-      color: white;
+      background-color: black; /* Fundo preto para evitar a exibição de imagens */
       overflow: hidden;
+      height: 100%;
     }
 
     .player-container {
-      position: relative;
-      max-width: 800px;
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: black;
     }
 
     video {
       width: 100%;
-      border-radius: 10px;
-      display: block;
+      height: 100%;
+      object-fit: contain; /* Garante que o vídeo se ajuste à tela */
     }
 
     .controls {
       position: absolute;
-      top: 50%;
+      bottom: 20px;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 40px;
-      display: none;
+      gap: 20px;
+      display: none; /* Controle visível apenas ao interagir */
     }
 
     .play-button,
     .skip-button {
       cursor: pointer;
-      transition: transform 0.2s;
       background: none;
       border: none;
       padding: 0;
     }
 
-    .play-button:active,
-    .skip-button:active {
-      transform: scale(0.9);
-    }
-
-    .skip-button img,
-    .play-button img {
-      width: 50px;
+    .play-button img,
+    .skip-button img {
+      width: 40px;
     }
 
     .progress-container {
       position: absolute;
-      bottom: 20px;
-      left: 0;
-      right: 0;
+      bottom: 10px;
+      width: 90%;
+      left: 5%;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 0 20px;
-      color: white;
-      display: none;
     }
 
     .progress-bar {
       flex: 1;
       height: 5px;
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.3);
       margin: 0 10px;
       cursor: pointer;
       border-radius: 5px;
-      position: relative;
     }
 
     .progress {
@@ -90,16 +81,16 @@
 
     .time {
       font-size: 14px;
+      color: white;
     }
 
     .progress-ball {
       position: absolute;
       top: 50%;
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       background-color: #ffd700;
       border-radius: 50%;
-      cursor: pointer;
       transform: translateY(-50%);
       left: 0;
       transition: left 0.1s ease;
@@ -115,9 +106,9 @@
     <button class="skip-button" onclick="retroceder()">
       <img src="https://i.imgur.com/fFcJ1qv.png" alt="Retroceder" />
     </button>
-    <span class="play-button" onclick="togglePlay()">
+    <button class="play-button" onclick="togglePlay()">
       <img src="https://i.imgur.com/s2qa5Ke.png" alt="Play/Pause" />
-    </span>
+    </button>
     <button class="skip-button" onclick="avancar()">
       <img src="https://i.imgur.com/zhAzF4A.png" alt="Avançar" />
     </button>
@@ -127,14 +118,13 @@
     <span id="currentTime" class="time">0:00</span>
     <div class="progress-bar" onclick="seek(event)">
       <div id="progress" class="progress"></div>
-      <div id="ball" class="progress-ball" onmousedown="startDrag(event)"></div>
+      <div id="ball" class="progress-ball"></div>
     </div>
     <span id="duration" class="time">0:00</span>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.0.11/hls.min.js"></script>
-
 <script>
   const video = document.getElementById('esoPlay');
   const progress = document.getElementById('progress');
@@ -142,43 +132,34 @@
   const currentTimeElem = document.getElementById('currentTime');
   const durationElem = document.getElementById('duration');
   const playButton = document.querySelector('.play-button');
-  const controls = document.querySelector('.controls');
-  const progressContainer = document.querySelector('.progress-container');
 
-  // Função para pegar parâmetros de URL
+  // Pega parâmetros de URL
   function getUrlParameter(name) {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get(name);
   }
 
   const videoSrc = getUrlParameter('video') || 'http://hubby.bz:80/movie/mflixfilmes-vods/y0UAZYXD21/40033.mp4';
-  const coverImage = getUrlParameter('cover') || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGIl-C6gTn-DGMLo96m-douZVJ71A-OcS_Fg&usqp=CAU';
-  
-  // Alterar o fundo e o poster do vídeo
-  document.body.style.backgroundImage = `url(${coverImage})`;
-  video.poster = coverImage;
+  const coverImage = getUrlParameter('cover') || '';
 
-  // Configurar o vídeo
+  // Configura vídeo
+  video.poster = coverImage;
   if (Hls.isSupported() && videoSrc.endsWith('.m3u8')) {
     const hls = new Hls();
     hls.loadSource(videoSrc);
     hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, function () {
-      video.play();
-    });
+    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
   } else {
     video.src = videoSrc;
   }
 
-  video.addEventListener('loadedmetadata', () => {
-    const duration = formatTime(video.duration);
-    durationElem.textContent = duration;
-  });
-
+  // Atualiza progresso
   video.addEventListener('timeupdate', () => {
-    const currentTime = formatTime(video.currentTime);
-    currentTimeElem.textContent = currentTime;
-    const progressPercent = (video.currentTime / video.duration) * 100;
+    const currentTime = video.currentTime;
+    const duration = video.duration;
+    const progressPercent = (currentTime / duration) * 100;
+    currentTimeElem.textContent = formatTime(currentTime);
+    durationElem.textContent = formatTime(duration);
     progress.style.width = progressPercent + '%';
     ball.style.left = progressPercent + '%';
   });
@@ -194,68 +175,27 @@
   }
 
   function avancar() {
-    video.currentTime = Math.min(video.currentTime + 10, video.duration);
+    video.currentTime += 10;
   }
 
   function retroceder() {
-    video.currentTime = Math.max(video.currentTime - 10, 0);
+    video.currentTime -= 10;
   }
 
   function seek(event) {
-    const progressContainer = event.currentTarget;
+    const progressBar = event.currentTarget;
     const clickX = event.offsetX;
-    const width = progressContainer.clientWidth;
+    const width = progressBar.clientWidth;
     const newTime = (clickX / width) * video.duration;
     video.currentTime = newTime;
   }
 
-  function formatTime(time) {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
-    return `${minutes}:${seconds}`;
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${secs}`;
   }
-
-  let isDragging = false;
-
-  function startDrag(event) {
-    isDragging = true;
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
-  }
-
-  function drag(event) {
-    if (isDragging) {
-      const progressBar = document.querySelector('.progress-bar');
-      const clickX = event.clientX - progressBar.offsetLeft;
-      const width = progressBar.clientWidth;
-      const newPercent = Math.min(Math.max(0, (clickX / width) * 100), 100);
-      ball.style.left = newPercent + '%';
-      progress.style.width = newPercent + '%';
-      video.currentTime = (newPercent / 100) * video.duration;
-    }
-  }
-
-  function stopDrag() {
-    isDragging = false;
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('mouseup', stopDrag);
-  }
-
-  document.body.addEventListener('click', (e) => {
-    if (!controls.contains(e.target) && !progressContainer.contains(e.target)) {
-      controls.style.display = (controls.style.display === 'none') ? 'flex' : 'none';
-      progressContainer.style.display = (progressContainer.style.display === 'none') ? 'flex' : 'none';
-    }
-  });
-
-  controls.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
-
-  progressContainer.addEventListener('click', (e) => {
-    e.stopPropagation();
-  });
 </script>
 
 </body>
-  </html>
+</html>
