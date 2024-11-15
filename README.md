@@ -1,0 +1,1 @@
+https://exoplayer.vercel.app/?video=http%3A%2F%2Fhubby.bz%3A80%2Fmovie%2Fmflixfilmes-vods%2Fy0UAZYXD21%2F40033.mp4&cover=https%3A%2F%2Fencrypted-tbn0.gstatic.com%2Fimages%3Fq%3Dtbn%3AANd9GcRAkHRlIvnVsc_EklgF63oPzoQZAdOl-jjrkIv95dWQFKY8wmpNqHY8WFZo&s=10
