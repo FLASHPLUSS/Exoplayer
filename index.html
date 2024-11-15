@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESO Play Customizado</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-size: cover;
+      color: white;
+      overflow: hidden;
+    }
+
+    .player-container {
+      position: relative;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 10px;
+      display: block;
+    }
+
+    .controls {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      display: none;
+    }
+
+    .play-button,
+    .skip-button {
+      cursor: pointer;
+      transition: transform 0.2s;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .play-button:active,
+    .skip-button:active {
+      transform: scale(0.9);
+    }
+
+    .skip-button img,
+    .play-button img {
+      width: 50px;
+    }
+
+    .progress-container {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      color: white;
+      display: none;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.5);
+      margin: 0 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      position: relative;
+    }
+
+    .progress {
+      height: 100%;
+      background: #ffd700;
+      width: 0%;
+    }
+
+    .time {
+      font-size: 14px;
+    }
+
+    .progress-ball {
+      position: absolute;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      background-color: #ffd700;
+      border-radius: 50%;
+      cursor: pointer;
+      transform: translateY(-50%);
+      left: 0;
+      transition: left 0.1s ease;
+    }
+  </style>
+</head>
+<body>
+
+<div class="player-container">
+  <video id="esoPlay" poster="" autoplay></video>
+
+  <div class="controls">
+    <button class="skip-button" onclick="retroceder()">
+      <img src="https://i.imgur.com/fFcJ1qv.png" alt="Retroceder" />
+    </button>
+    <span class="play-button" onclick="togglePlay()">
+      <img src="https://i.imgur.com/s2qa5Ke.png" alt="Play/Pause" />
+    </span>
+    <button class="skip-button" onclick="avancar()">
+      <img src="https://i.imgur.com/zhAzF4A.png" alt="Avançar" />
+    </button>
+  </div>
+
+  <div class="progress-container">
+    <span id="currentTime" class="time">0:00</span>
+    <div class="progress-bar" onclick="seek(event)">
+      <div id="progress" class="progress"></div>
+      <div id="ball" class="progress-ball" onmousedown="startDrag(event)"></div>
+    </div>
+    <span id="duration" class="time">0:00</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.0.11/hls.min.js"></script>
+
+<script>
+  const video = document.getElementById('esoPlay');
+  const progress = document.getElementById('progress');
+  const ball = document.getElementById('ball');
+  const currentTimeElem = document.getElementById('currentTime');
+  const durationElem = document.getElementById('duration');
+  const playButton = document.querySelector('.play-button');
+  const controls = document.querySelector('.controls');
+  const progressContainer = document.querySelector('.progress-container');
+
+  // Função para pegar parâmetros de URL
+  function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
+
+  const videoSrc = getUrlParameter('video') || 'http://hubby.bz:80/movie/mflixfilmes-vods/y0UAZYXD21/40033.mp4';
+  const coverImage = getUrlParameter('cover') || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGIl-C6gTn-DGMLo96m-douZVJ71A-OcS_Fg&usqp=CAU';
+  
+  // Alterar o fundo e o poster do vídeo
+  document.body.style.backgroundImage = `url(${coverImage})`;
+  video.poster = coverImage;
+
+  // Configurar o vídeo
+  if (Hls.isSupported() && videoSrc.endsWith('.m3u8')) {
+    const hls = new Hls();
+    hls.loadSource(videoSrc);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+      video.play();
+    });
+  } else {
+    video.src = videoSrc;
+  }
+
+  video.addEventListener('loadedmetadata', () => {
+    const duration = formatTime(video.duration);
+    durationElem.textContent = duration;
+  });
+
+  video.addEventListener('timeupdate', () => {
+    const currentTime = formatTime(video.currentTime);
+    currentTimeElem.textContent = currentTime;
+    const progressPercent = (video.currentTime / video.duration) * 100;
+    progress.style.width = progressPercent + '%';
+    ball.style.left = progressPercent + '%';
+  });
+
+  function togglePlay() {
+    if (video.paused) {
+      video.play();
+      playButton.querySelector('img').src = 'https://i.imgur.com/VXzD6Iq.png';
+    } else {
+      video.pause();
+      playButton.querySelector('img').src = 'https://i.imgur.com/s2qa5Ke.png';
+    }
+  }
+
+  function avancar() {
+    video.currentTime = Math.min(video.currentTime + 10, video.duration);
+  }
+
+  function retroceder() {
+    video.currentTime = Math.max(video.currentTime - 10, 0);
+  }
+
+  function seek(event) {
+    const progressContainer = event.currentTarget;
+    const clickX = event.offsetX;
+    const width = progressContainer.clientWidth;
+    const newTime = (clickX / width) * video.duration;
+    video.currentTime = newTime;
+  }
+
+  function formatTime(time) {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  }
+
+  let isDragging = false;
+
+  function startDrag(event) {
+    isDragging = true;
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+  }
+
+  function drag(event) {
+    if (isDragging) {
+      const progressBar = document.querySelector('.progress-bar');
+      const clickX = event.clientX - progressBar.offsetLeft;
+      const width = progressBar.clientWidth;
+      const newPercent = Math.min(Math.max(0, (clickX / width) * 100), 100);
+      ball.style.left = newPercent + '%';
+      progress.style.width = newPercent + '%';
+      video.currentTime = (newPercent / 100) * video.duration;
+    }
+  }
+
+  function stopDrag() {
+    isDragging = false;
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stopDrag);
+  }
+
+  document.body.addEventListener('click', (e) => {
+    if (!controls.contains(e.target) && !progressContainer.contains(e.target)) {
+      controls.style.display = (controls.style.display === 'none') ? 'flex' : 'none';
+      progressContainer.style.display = (progressContainer.style.display === 'none') ? 'flex' : 'none';
+    }
+  });
+
+  controls.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  progressContainer.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+</script>
+
+</body>
+  </html>
